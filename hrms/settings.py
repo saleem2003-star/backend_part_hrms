@@ -15,7 +15,10 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+import os
 
+# SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "unsafe-secret-key")
+# DEBUG = os.environ.get("DEBUG", "True") == "True"
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
