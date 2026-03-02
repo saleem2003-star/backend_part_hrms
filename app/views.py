@@ -90,7 +90,6 @@ def attendence_logout(request):
 @csrf_exempt
 @api_view(['GET','POST'])
 def employee_dashboard(request,id):
-    
     employee = Employee_Registration.objects.get(id=id)
     serializer = Employee_serializer(employee)
     return Response(serializer.data)
