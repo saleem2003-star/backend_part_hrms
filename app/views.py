@@ -4,6 +4,7 @@ from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
+from django.utils import timezone
 from .models import Employee_Registration,Employee_attendence
 from .serializers import Employee_serializer,EmployeeLoginSerializer,Employee_attendence_serializer,EmployeeCheckInSerializer
 from django.views.decorators.csrf import csrf_exempt
@@ -29,18 +30,6 @@ def create_data(request):
             print("Saved data:", serializer.data)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         print(serializer.errors)
-
-# @csrf_exempt
-# @api_view(['GET','POST'])      
-# def employe_dashboard(request):
-#     if request.method == 'GET' :
-           
-# @csrf_exempt
-# @api_view(['GET','POST'])
-# def attendence(request):
-#     if request.method == 'GET':
-#         employee = Employee_Registration.objects.filter(id=1)
-    
         
 @csrf_exempt
 @api_view(['POST'])
@@ -64,22 +53,8 @@ def employee_attendence(request):
         serializer = Employee_attendence_serializer(employees, many=True)
         return Response(serializer.data)
     print(employees) 
-    
-# @csrf_exempt
-# @api_view(['GET','POST'])
-# def employee_attendence_create(request):
-#     if request.method == 'POST':
-#         serializer = Employee_attendence_serializer(data=request.data)
-#         if serializer.is_valid():
-#             serializer.save()
-#             print("Saved data:", serializer.data)
-#             return Response(serializer.data, status=status.HTTP_201_CREATED)
-#         print(serializer.errors)
+
         
-from django.utils import timezone
-
-
-
 @csrf_exempt
 @api_view(['GET','POST'])
 def employee_attendence_create(request):
@@ -110,34 +85,8 @@ def attendence_logout(request):
         attendence.checkout = timezone.now()
         attendence.save(update_fields=['checkout'])
 
-# print(Employee_attendence.objects.all())     
-# @csrf_exempt
-# @api_view(['GET','POST'])
-# def attendence(request):
-#     if request.method == 'POST':
-        
 
-# @csrf_exempt
-# @api_view(['POST'])
-# def employee_login(request):
-#     serializer = EmployeeLoginSerializer(data=request.data)
-
-#     if not serializer.is_valid():
-#         return Response({
-#             "status": "error",
-#             "message": "Invalid email or password"
-#         }, status=400)
-
-#     employee = serializer.validated_data['employee']
-#     emp_serializer = Employee_serializer(employee)
-
-#     return Response({
-#         "status": "success",
-#         "message": "Login successful",
-#         "employee_data": emp_serializer.data
-#     })
-    
-     
+         
 @csrf_exempt
 @api_view(['GET','POST'])
 def employee_dashboard(request,id):

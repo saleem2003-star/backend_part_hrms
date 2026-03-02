@@ -8,6 +8,8 @@ urlpatterns = [
     path("employee/dashboard/<int:id>/",employee_dashboard),
     path('employee/attendence/',employee_attendence),
     path('employee-attendence/create/',employee_attendence_create),
-    path('employee-attendece/checkout/',attendence_logout)
-   
+    path('employee-attendece/checkout/',attendence_logout)  
 ]
+
+
+
