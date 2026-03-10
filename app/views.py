@@ -403,3 +403,69 @@ def attendance_status(request, id):
         return Response({
             "status": "punched_out"
         })
+        
+from datetime import date
+def birthdays(request):
+    today =date.today()
+    employees = Employee_Registration.objects.all()
+    today_birthdays = []
+    upcoming_birthdays = []
+    from datetime import date
+from django.http import JsonResponse
+from .models import Employee_Registration, Employee_other_details
+
+def birthdays(request):
+    today = date.today()
+    employees = Employee_Registration.objects.all()
+
+    today_birthdays = []
+    upcoming_birthdays = []
+
+    for emp in employees:
+        try:
+            details = Employee_other_details.objects.get(name=emp)  # assuming ForeignKey 'name'
+            emp_dob = details.dob
+        except Employee_other_details.DoesNotExist:
+            continue  # skip if no details
+
+        if emp_dob.month == today.month and emp_dob.day == today.day:
+            today_birthdays.append({
+                "name": emp.name,
+                "dob": str(emp_dob),
+                # "photo": emp.photo.url  # if photo in Employee_Registration
+            })
+        else:
+            upcoming_birthdays.append({
+                "name": emp.name,
+                "dob": str(emp_dob),
+                # "photo": emp.photo.url
+            })
+
+    # Sort upcoming birthdays by nearest date
+    upcoming_birthdays.sort(key=lambda x: x["dob"])
+
+    return JsonResponse({
+        "today": today_birthdays,
+        "upcoming": upcoming_birthdays
+    })
+    
+
+
+def leave_approvals(request):
+    approvals = []
+
+    # get all pending leaves directly
+    pending_leaves = Leave.objects.filter(status='pending')
+
+    for leave in pending_leaves:
+        approvals.append({
+            'name': leave.name.name,  # leave.name is the Employee object, .name gets string
+            'details': leave.leave_type,
+            'duration': f"from {leave.from_date} to {leave.to_date}",
+            'reason':leave.reason,
+            'days': leave.number_of_days
+        })
+
+    return JsonResponse({
+        'data': approvals
+    })
