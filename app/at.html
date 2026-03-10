@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<button id="punchBtn">Punch In</button>
+
+<script>
+
+const emp_id = 1;
+
+document.getElementById("punchBtn").addEventListener("click", function(){
+
+fetch("http://127.0.0.1:8000/api/employee-attendence/create/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id: emp_id })
+})
+.then(res => res.json())
+.then(data => {
+    console.log("Punch In Response:", data);
+
+    if (data.error) {
+        alert(data.error);
+        return;
+    }
+
+    alert("Attendance saved successfully");
+})
+.catch(err => console.error("Punch In Error:", err));
+
+});
+
+</script>
+
+</body>
+</html>
+
