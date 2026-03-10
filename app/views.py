@@ -374,6 +374,13 @@ def get_employee_payslips(request,id):
 
 
 @api_view(['GET'])
+def get_employee_documents(request,id):
+    employee = Employee_Registration.objects.get(id=id)
+    documents = Employee_main_files.objects.filter(employee=employee)
+    serializer = Employee_main_files_Serializer(documents,many=True)
+    return Response(serializer.data)
+
+@api_view(['GET'])
 def attendance_status(request, id):
 
     today = timezone.localdate()

@@ -16,7 +16,8 @@ urlpatterns = [
     path('update-employee/<int:id>/',update_employee_details),
     path('upload-documents/<int:id>/',upload_documents),
     path('employee-details/<int:id>/',admin_employee),
-    path('attendence-status/<int:id>/',attendance_status)
+    path('attendence-status/<int:id>/',attendance_status),
+    path('employee-documents/<int:id>/',get_employee_documents)
     
 ]
 
