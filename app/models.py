@@ -139,3 +139,44 @@ class Leave(models.Model):
     def __str__(self):
         return f"{self.name} - {self.leave_type}"
 
+class Asset(models.Model):
+
+    
+    asset_id = models.CharField(max_length=100, null=True, blank=True)
+    emp_id = models.CharField(max_length=50)
+    employee = models.CharField(max_length=100)
+    email = models.EmailField()
+    asset_type = models.CharField(max_length=50)
+    model_details = models.CharField(max_length=200)
+    assigned_date = models.DateField()
+    status = models.CharField(max_length=50, default='assigned')
+
+    def _str_(self):
+        return f"{self.asset_id} - {self.employee}"
+    
+class AssetRequest(models.Model):
+    emp_id = models.CharField(max_length=50)
+    employee_name = models.CharField(max_length=100)
+    asset_category = models.CharField(max_length=100)
+    description = models.TextField()
+    location = models.CharField(max_length=100)
+    status = models.CharField(max_length=50, default="Pending")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def _str_(self):
+        return f"{self.employee_name} - {self.asset_category}"
+    
+class ReturnAsset(models.Model):
+    emp_id = models.CharField(max_length=50)
+    employee_name = models.CharField(max_length=100)
+    asset_type = models.CharField(max_length=100)
+    condition=models.CharField(max_length=100)
+    description = models.TextField()
+    status = models.CharField(
+        max_length=20,
+        default="Pending"
+    )
+
+    def _str_(self):
+        return f"{self.employee_name}-{self.asset_type}"
+

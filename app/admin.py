@@ -10,3 +10,10 @@ admin.site.register(Employee_statuory_information)
 admin.site.register(Leave)
 admin.site.register(Payslip)
 admin.site.register(Employee_main_files)
+
+admin.site.register(AssetRequest)
+
+class AssetAdmin(admin.ModelAdmin):
+    list_display = ('asset_id','emp_id','employee','email','asset_type','model_details','assigned_date','status')
+admin.site.register(Asset, AssetAdmin)
+admin.site.register(ReturnAsset)

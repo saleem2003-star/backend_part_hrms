@@ -20,7 +20,16 @@ urlpatterns = [
     path('employee-documents/<int:id>/',get_employee_documents),
     path('birthdays/',birthdays),
     path('leave-approvals/',leave_approvals),
-    path('employee-attendence-history/<int:id>/',employee_attendence_history)
+    path('employee-attendence-history/<int:id>/',employee_attendence_history),
+    path('asset-request/', create_asset_request),
+    path('asset-return/',Create_Return_Asset),
+    path("return-assets/", get_return_assets),
+    path("return-status/<int:pk>/", update_return_status),
+    path("return-assets/<int:pk>/", delete_return_asset),
+    path('assets/<str:asset_id>/', asset_update_delete),
+    path('assets/', get_assets),
+    path('assets/save/', save_asset),
+    path('employee-assets/<str:emp_id>/', get_employee_assets)
     
 ]
 

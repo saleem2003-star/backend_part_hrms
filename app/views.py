@@ -475,3 +475,110 @@ def leave_approvals(request):
     return JsonResponse({
         'data': approvals
     })
+    
+@api_view(['POST'])
+def create_asset_request(request):
+
+    print("REQUEST DATA:", request.data)
+
+    serializer = AssetRequestSerializer(data=request.data)
+
+    if serializer.is_valid():
+        serializer.save()
+        return Response({"message": "Request saved"})
+
+    print("ERRORS:", serializer.errors)
+
+    return Response(serializer.errors, status=400)
+
+
+@api_view(["POST"])
+def Create_Return_Asset(request):
+    serializer=ReturnAssetSerializers(data=request.data)
+
+    if serializer.is_valid():
+        serializer.save()
+        return Response({"message":"Request saved"})
+    print("Errors:",serializer.errors)
+    
+    return Response(serializer.errors, status=400)
+@api_view(["GET"])
+def get_return_assets(request):
+    assets = ReturnAsset.objects.all().order_by("-id")
+    serializer = ReturnAssetSerializers(assets, many=True)
+    return Response(serializer.data)
+
+@api_view(["PATCH"])
+def update_return_status(request, pk):
+
+    try:
+        asset = ReturnAsset.objects.get(id=pk)
+
+        status = request.data.get("status")
+        asset.status = status
+        asset.save()
+
+        if status == "received":
+            Asset.objects.filter(
+                emp_id=asset.emp_id,
+                asset_type=asset.asset_type
+            ).update(status="returned")
+
+        return Response({"message": "Status updated successfully"})
+
+    except ReturnAsset.DoesNotExist:
+        return Response({"error": "Return request not found"}, status=404)
+    
+@api_view(["DELETE"])
+def delete_return_asset(request, pk):
+
+    try:
+        asset = ReturnAsset.objects.get(id=pk)
+        asset.delete()
+        return Response({"message":"Deleted"})
+    except ReturnAsset.DoesNotExist:
+        return Response({"error":"Not found"}, status=404)
+    
+@api_view(["PATCH","DELETE"])
+def asset_update_delete(request, asset_id):
+
+    try:
+        asset = Asset.objects.get(asset_id=asset_id)
+
+        if request.method == "PATCH":
+            serializer = AssetSerializer(asset, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+
+        if request.method == "DELETE":
+            asset.delete()
+            return Response({"message":"deleted"})
+
+    except Asset.DoesNotExist:
+        return Response({"error":"Asset not found"}, status=404)
+    
+    
+@api_view(['GET'])
+def get_assets(request):
+    assets = Asset.objects.all()
+    serializer = AssetSerializer(assets, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['POST'])
+def save_asset(request):
+    serializer = AssetSerializer(data=request.data)
+
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+
+    return Response(serializer.errors)
+
+@api_view(['GET'])
+def get_employee_assets(request, emp_id):
+    assets = Asset.objects.filter(emp_id=emp_id)
+    serializer = AssetSerializer(assets, many=True)
+    return Response(serializer.data)
+
