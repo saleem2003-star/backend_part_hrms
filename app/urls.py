@@ -19,7 +19,8 @@ urlpatterns = [
     path('attendence-status/<int:id>/',attendance_status),
     path('employee-documents/<int:id>/',get_employee_documents),
     path('birthdays/',birthdays),
-    path('leave-approvals/',leave_approvals)
+    path('leave-approvals/',leave_approvals),
+    path('employee-attendence-history/<int:id>/',employee_attendence_history)
     
 ]
 

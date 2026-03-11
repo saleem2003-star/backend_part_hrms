@@ -59,6 +59,9 @@ def employee_attendence(request):
     print(employees)
 
 
+    
+
+
 
         
 # @csrf_exempt
@@ -182,6 +185,8 @@ def admin_employee(request,id):
      employee = Employee_Registration.objects.get(id=id)
      serializer = Admin_Employee_dashboard(employee)
      return Response(serializer.data)
+
+
 # @csrf_exempt
 # @api_view(['GET','POST'])
 # def admin_employee_details(request,id):
@@ -341,6 +346,20 @@ def upload_documents(request, id):
         })
     print(serializer.errors)
     return Response(serializer.errors, status=400)
+
+
+
+@api_view(['GET'])
+def employee_attendence_history(request, id):
+    attendances = Employee_attendence_details.objects.filter(name_id=id).order_by('-date')
+    serializer = Employee_attendence_serializer(attendances, many=True)
+    return Response(serializer.data)
+# @csrf_exempt
+# @api_view(['GET','POST'])
+# def employee_attendence_history(requset,id):
+#     employee = Employee_Registration.objects.get(id=id)
+#     serializer = Employee_attendence_serializer(name=employee)
+#     return Response(serializer.data)
     # if 'profile' in data:
     #     profile_data = data['profile']
     #     profile_obj, created = Employee_other_details.objects.get_or_create(name=employee)
@@ -404,16 +423,9 @@ def attendance_status(request, id):
             "status": "punched_out"
         })
         
-from datetime import date
-def birthdays(request):
-    today =date.today()
-    employees = Employee_Registration.objects.all()
-    today_birthdays = []
-    upcoming_birthdays = []
-    from datetime import date
-from django.http import JsonResponse
-from .models import Employee_Registration, Employee_other_details
 
+
+from datetime import date
 def birthdays(request):
     today = date.today()
     employees = Employee_Registration.objects.all()
@@ -423,25 +435,23 @@ def birthdays(request):
 
     for emp in employees:
         try:
-            details = Employee_other_details.objects.get(name=emp)  # assuming ForeignKey 'name'
+            details = Employee_other_details.objects.get(name=emp)
             emp_dob = details.dob
         except Employee_other_details.DoesNotExist:
-            continue  # skip if no details
+            continue 
 
         if emp_dob.month == today.month and emp_dob.day == today.day:
             today_birthdays.append({
                 "name": emp.name,
                 "dob": str(emp_dob),
-                # "photo": emp.photo.url  # if photo in Employee_Registration
+                
             })
         else:
             upcoming_birthdays.append({
                 "name": emp.name,
                 "dob": str(emp_dob),
-                # "photo": emp.photo.url
+               
             })
-
-    # Sort upcoming birthdays by nearest date
     upcoming_birthdays.sort(key=lambda x: x["dob"])
 
     return JsonResponse({
@@ -453,19 +463,15 @@ def birthdays(request):
 
 def leave_approvals(request):
     approvals = []
-
-    # get all pending leaves directly
     pending_leaves = Leave.objects.filter(status='pending')
-
     for leave in pending_leaves:
         approvals.append({
-            'name': leave.name.name,  # leave.name is the Employee object, .name gets string
+            'name': leave.name.name,
             'details': leave.leave_type,
             'duration': f"from {leave.from_date} to {leave.to_date}",
             'reason':leave.reason,
             'days': leave.number_of_days
         })
-
     return JsonResponse({
         'data': approvals
     })
