@@ -240,7 +240,6 @@ def apply_leave(request, id):
 
 @api_view(['PATCH'])
 def update_leave_status(request, id):
-
     try:
         leave = Leave.objects.get(id=id)
     except Leave.DoesNotExist:
@@ -466,6 +465,7 @@ def leave_approvals(request):
     pending_leaves = Leave.objects.filter(status='pending')
     for leave in pending_leaves:
         approvals.append({
+            'id':leave.id,
             'name': leave.name.name,
             'details': leave.leave_type,
             'duration': f"from {leave.from_date} to {leave.to_date}",
