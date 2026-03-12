@@ -6,7 +6,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from django.utils import timezone
-from datetime import timedelta
+from datetime import datetime, timedelta
 from .models import *
 from .serializers import *
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -582,3 +582,55 @@ def get_employee_assets(request, emp_id):
     serializer = AssetSerializer(assets, many=True)
     return Response(serializer.data)
 
+@api_view(['GET'])
+def get_all_asset_requests(request):
+    requests = AssetRequest.objects.filter(status='Pending').order_by('-id')
+    serializer = AssetRequestSerializer(requests, many=True)
+    return Response(serializer.data)
+
+# 2. APPROVE/REJECT REQUEST (Fixed with Error Handling)
+@api_view(['PATCH'])
+def update_asset_request_status(request, pk):
+    try:
+        # Get the request object
+        asset_request = AssetRequest.objects.get(id=pk)
+        
+        # Get status from frontend
+        new_status = request.data.get('status') # 'Approved' or 'Rejected'
+        
+        print(f"Processing Request ID: {pk} | New Status: {new_status}") # Debug Print
+
+        # Update the request status
+        asset_request.status = new_status
+        asset_request.save()
+
+        # --- LOGIC: CREATE ASSET IF APPROVED ---
+        if new_status == 'Approved':
+            try:
+                # Create the Asset
+                new_asset = Asset.objects.create(
+                    asset_id=f"AST-{asset_request.id}", # Temp ID
+                    emp_id=asset_request.emp_id,
+                    employee=asset_request.employee_name,
+                    email="employee@example.com", # Placeholder (Required by Model)
+                    asset_type=asset_request.asset_category,
+                    model_details=asset_request.model_detail, 
+                    assigned_date=timezone.now().date(), # FIXED DATE FORMAT
+                    status="assigned"
+                )
+                print(f"Asset Created Successfully: {new_asset.asset_id}") # Debug Print
+                return Response({"message": "Request Approved & Asset Created!"})
+            
+            except Exception as e:
+                # If creating the asset fails, print the error
+                print(f"CRITICAL ERROR CREATING ASSET: {str(e)}")
+                return Response({"error": f"Failed to create asset: {str(e)}"}, status=500)
+
+        return Response({"message": f"Request marked as {new_status}"})
+
+    except AssetRequest.DoesNotExist:
+        return Response({"error": "Request not found"}, status=404)
+    
+    except Exception as e:
+        print(f"GENERAL ERROR: {str(e)}")
+        return Response({"error": str(e)}, status=500)

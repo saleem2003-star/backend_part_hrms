@@ -158,7 +158,7 @@ class AssetRequest(models.Model):
     emp_id = models.CharField(max_length=50)
     employee_name = models.CharField(max_length=100)
     asset_category = models.CharField(max_length=100)
-    description = models.TextField()
+    model_detail = models.TextField()
     location = models.CharField(max_length=100)
     status = models.CharField(max_length=50, default="Pending")
     created_at = models.DateTimeField(auto_now_add=True)
