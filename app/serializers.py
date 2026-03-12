@@ -108,16 +108,16 @@ class Employee_attendence_serializer(serializers.ModelSerializer):
 class AssetSerializer(serializers.ModelSerializer):
     class Meta:
         model = Asset
-        fields = '_all_'
+        fields = '__all__'
 class AssetRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = AssetRequest
-        fields = "_all_"
+        fields = "__all__"
 
 class ReturnAssetSerializers(serializers.ModelSerializer):
     class Meta:
         model=ReturnAsset
-        fields="_all_"
+        fields="__all__"
 
 class PayslipSerializer(serializers.ModelSerializer):
     class Meta:

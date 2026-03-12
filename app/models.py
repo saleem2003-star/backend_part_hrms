@@ -151,7 +151,7 @@ class Asset(models.Model):
     assigned_date = models.DateField()
     status = models.CharField(max_length=50, default='assigned')
 
-    def _str_(self):
+    def __str__(self):
         return f"{self.asset_id} - {self.employee}"
     
 class AssetRequest(models.Model):
@@ -163,7 +163,7 @@ class AssetRequest(models.Model):
     status = models.CharField(max_length=50, default="Pending")
     created_at = models.DateTimeField(auto_now_add=True)
 
-    def _str_(self):
+    def __str__(self):
         return f"{self.employee_name} - {self.asset_category}"
     
 class ReturnAsset(models.Model):
@@ -177,6 +177,6 @@ class ReturnAsset(models.Model):
         default="Pending"
     )
 
-    def _str_(self):
+    def __str__(self):
         return f"{self.employee_name}-{self.asset_type}"
 

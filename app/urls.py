@@ -26,7 +26,7 @@ urlpatterns = [
     path("return-assets/", get_return_assets),
     path("return-status/<int:pk>/", update_return_status),
     path("return-assets/<int:pk>/", delete_return_asset),
-    path('assets/<str:asset_id>/', asset_update_delete),
+    path('assets/<int:pk>/', asset_update_delete),
     path('assets/', get_assets),
     path('assets/save/', save_asset),
     path('employee-assets/<str:emp_id>/', get_employee_assets)

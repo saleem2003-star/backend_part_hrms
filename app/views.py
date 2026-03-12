@@ -539,24 +539,24 @@ def delete_return_asset(request, pk):
     except ReturnAsset.DoesNotExist:
         return Response({"error":"Not found"}, status=404)
     
-@api_view(["PATCH","DELETE"])
-def asset_update_delete(request, asset_id):
-
+@api_view(["PATCH", "DELETE"])
+def asset_update_delete(request, pk):  # Change asset_id to pk
     try:
-        asset = Asset.objects.get(asset_id=asset_id)
-
-        if request.method == "PATCH":
-            serializer = AssetSerializer(asset, data=request.data, partial=True)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data)
-
-        if request.method == "DELETE":
-            asset.delete()
-            return Response({"message":"deleted"})
-
+        # Change lookup to use the automatic database ID
+        asset = Asset.objects.get(id=pk) 
     except Asset.DoesNotExist:
-        return Response({"error":"Asset not found"}, status=404)
+        return Response({"error": "Asset not found"}, status=404)
+
+    if request.method == "PATCH":
+        serializer = AssetSerializer(asset, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400) # Return errors if invalid
+
+    if request.method == "DELETE":
+        asset.delete()
+        return Response({"message": "Deleted successfully"})
     
     
 @api_view(['GET'])
