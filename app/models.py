@@ -180,3 +180,14 @@ class ReturnAsset(models.Model):
     def __str__(self):
         return f"{self.employee_name}-{self.asset_type}"
 
+class AttendanceRequest(models.Model):
+    employee = models.ForeignKey(Employee_Registration, on_delete=models.CASCADE)
+    date = models.DateField()
+    clock_in = models.TimeField(null=True, blank=True)
+    clock_out = models.TimeField(null=True, blank=True)
+    reason = models.TextField()
+    status = models.CharField(max_length=50, default='Pending') # Pending, Approved, Rejected
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.employee.name} - {self.date} Request"

@@ -634,3 +634,60 @@ def update_asset_request_status(request, pk):
     except Exception as e:
         print(f"GENERAL ERROR: {str(e)}")
         return Response({"error": str(e)}, status=500)
+    
+
+@api_view(['POST'])
+def create_attendance_request(request):
+    try:
+        # We expect data like: { "employee": 8, "date": "2024-03-12", "clock_in": "09:00", "clock_out": "18:00", "reason": "Forgot punch" }
+        serializer = AttendanceRequestSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Correction request submitted successfully!"}, status=201)
+        return Response(serializer.errors, status=400)
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+# 2. ADMIN GETS PENDING REQUESTS (GET)
+@api_view(['GET'])
+def get_attendance_requests(request):
+    requests = AttendanceRequest.objects.filter(status='Pending').order_by('-created_at')
+    serializer = AttendanceRequestSerializer(requests, many=True)
+    return Response(serializer.data)
+
+# 3. ADMIN APPROVES REQUEST (PATCH)
+@api_view(['PATCH'])
+def update_attendance_request_status(request, pk):
+    try:
+        req = AttendanceRequest.objects.get(id=pk)
+        new_status = request.data.get('status')
+        req.status = new_status
+        req.save()
+
+        # --- THE MAGIC LOGIC: UPDATE MAIN TABLE IF APPROVED ---
+        if new_status == 'Approved':
+            # 1. Find the main attendance record for that Employee + Date
+            # get_or_create handles if the record didn't exist (e.g. they forgot to punch in at all)
+            main_record, created = Employee_attendence_details.objects.get_or_create(
+                name=req.employee,
+                date=req.date
+            )
+
+            # 2. Combine the Date from request with the Time from request to make DateTime
+            # Because your main table uses DateTimeField
+            if req.clock_in:
+                main_record.checkin = datetime.combine(req.date, req.clock_in)
+            
+            if req.clock_out:
+                main_record.checkout = datetime.combine(req.date, req.clock_out)
+
+            main_record.save()
+            return Response({"message": "Approved and Attendance Updated!"})
+
+        return Response({"message": "Request Rejected"})
+
+    except AttendanceRequest.DoesNotExist:
+        return Response({"error": "Request not found"}, status=404)
+    except Exception as e:
+        print(e)
+        return Response({"error": str(e)}, status=500)

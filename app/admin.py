@@ -17,3 +17,10 @@ class AssetAdmin(admin.ModelAdmin):
     list_display = ('asset_id','emp_id','employee','email','asset_type','model_details','assigned_date','status')
 admin.site.register(Asset, AssetAdmin)
 admin.site.register(ReturnAsset)
+
+class AttendanceRequestAdmin(admin.ModelAdmin):
+    list_display = ('employee', 'date', 'clock_in', 'clock_out', 'status', 'created_at')
+    list_filter = ('status', 'date')
+    search_fields = ('employee__name',)
+
+admin.site.register(AttendanceRequest, AttendanceRequestAdmin)

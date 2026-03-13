@@ -167,4 +167,11 @@ class EmployeeLoginSerializer(serializers.Serializer):
         data['employee'] = employee
         return data
 
+class AttendanceRequestSerializer(serializers.ModelSerializer):
+    # Fetch the name so we can show it in the Admin Table
+    employee_name = serializers.CharField(source='employee.name', read_only=True)
+    
+    class Meta:
+        model = AttendanceRequest
+        fields = '__all__'
 

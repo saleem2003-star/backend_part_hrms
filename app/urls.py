@@ -33,6 +33,11 @@ urlpatterns = [
     path('admin/asset-requests/', get_all_asset_requests),
     path('admin/asset-request-status/<int:pk>/', update_asset_request_status),
     
+    path('attendance-request/create/', create_attendance_request), # For Employee Page
+    path('admin/attendance-requests/', get_attendance_requests),   # For Admin Table
+    path('admin/attendance-status/<int:pk>/', update_attendance_request_status), # For Admin Action
+
+    
 ]
 
 
