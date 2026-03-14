@@ -37,7 +37,8 @@ urlpatterns = [
     path('admin/attendance-requests/', get_attendance_requests),   # For Admin Table
     path('admin/attendance-status/<int:pk>/', update_attendance_request_status), # For Admin Action
 
-    
+    path('employee-break/start/', start_break),
+    path('employee-break/end/', end_break),
 ]
 
 

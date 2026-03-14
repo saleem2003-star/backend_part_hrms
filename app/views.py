@@ -691,3 +691,68 @@ def update_attendance_request_status(request, pk):
     except Exception as e:
         print(e)
         return Response({"error": str(e)}, status=500)
+
+@csrf_exempt
+@api_view(['POST'])
+def start_break(request):
+    employee_id = request.data.get('id')
+    break_type = request.data.get('break_type') # 'lunch' or 'normal'
+
+    if not employee_id or not break_type:
+        return Response({"error": "Employee ID and break type are required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        employee = Employee_Registration.objects.get(id=employee_id)
+    except Employee_Registration.DoesNotExist:
+        return Response({"error": "Employee not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    # Check if the user is already on a break that hasn't ended yet
+    active_break = Employee_Break_details.objects.filter(
+    employee=employee,
+    end_time__isnull=True
+).first()
+
+    if active_break:
+        return Response({"error": "Already on an active break"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Create the new break session
+    break_record = Employee_Break_details.objects.create(
+        employee=employee,
+        date=timezone.localdate(),
+        break_type=break_type,
+        start_time=timezone.now()
+    )
+    
+    serializer = EmployeeBreakSerializer(break_record)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@csrf_exempt
+@api_view(['PUT'])
+def end_break(request):
+    employee_id = request.data.get('id')
+    
+    if not employee_id:
+        return Response({"error": "Employee ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        employee = Employee_Registration.objects.get(id=employee_id)
+    except Employee_Registration.DoesNotExist:
+        return Response({"error": "Employee not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    # Find the active break for today that hasn't been closed yet
+    active_break = Employee_Break_details.objects.filter(
+        employee=employee, 
+        date=timezone.localdate(), 
+        end_time__isnull=True
+    ).order_by('-start_time').first()
+
+    if not active_break:
+        return Response({"error": "No active break found to end"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Update the end time and save (which triggers the duration calculation in the model)
+    active_break.end_time = timezone.now()
+    active_break.save()
+    
+    serializer = EmployeeBreakSerializer(active_break)
+    return Response(serializer.data, status=status.HTTP_200_OK)

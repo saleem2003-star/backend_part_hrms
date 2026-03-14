@@ -191,3 +191,21 @@ class AttendanceRequest(models.Model):
 
     def __str__(self):
         return f"{self.employee.name} - {self.date} Request"
+    
+
+class Employee_Break_details(models.Model):
+    employee = models.ForeignKey(Employee_Registration, on_delete=models.CASCADE)
+    date = models.DateField(default=timezone.localdate)
+    break_type = models.CharField(max_length=50) # Will store 'lunch' or 'normal'
+    start_time = models.DateTimeField(null=True, blank=True)
+    end_time = models.DateTimeField(null=True, blank=True)
+    duration = models.DurationField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        # Automatically calculate break duration when ending the break
+        if self.start_time and self.end_time:
+            self.duration = self.end_time - self.start_time
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.employee.name} - {self.break_type} on {self.date}"

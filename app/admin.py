@@ -24,3 +24,15 @@ class AttendanceRequestAdmin(admin.ModelAdmin):
     search_fields = ('employee__name',)
 
 admin.site.register(AttendanceRequest, AttendanceRequestAdmin)
+
+
+@admin.register(Employee_Break_details)
+class EmployeeBreakDetailsAdmin(admin.ModelAdmin):
+    # This controls which columns show up in the admin list view
+    list_display = ('employee', 'date', 'break_type', 'start_time', 'end_time', 'duration')
+    
+    # Adds a filter sidebar to filter by date, type, or employee
+    list_filter = ('date', 'break_type')
+    
+    # Adds a search bar to search by employee name
+    search_fields = ('employee__name', 'break_type')
