@@ -66,12 +66,12 @@ class Employee_Bank_details(models.Model):
 
 class Employee_statuory_information(models.Model):
     name = models.ForeignKey(Employee_Registration,on_delete=models.CASCADE)
-    pan = models.CharField(max_length=10)
-    pf_uan = models.CharField(max_length=30)
-    profesional_tax = models.CharField(max_length=100)
-    lwf_status = models.CharField(max_length=100)
-    esic_status=models.CharField(max_length=100)
-    esic_ip_number= models.BigIntegerField()
+    pan = models.CharField(max_length=10, null=True, blank=True)
+    pf_uan = models.CharField(max_length=30, null=True, blank=True)
+    profesional_tax = models.CharField(max_length=100, null=True, blank=True)
+    lwf_status = models.CharField(max_length=100, null=True, blank=True)
+    esic_status=models.CharField(max_length=100, null=True, blank=True)
+    esic_ip_number= models.BigIntegerField(null=True, blank=True)
     def __str__(self):
         return f"{self.name} - {self.pan}"
 
