@@ -912,3 +912,44 @@ def monthly_attendance_summary(request):
 
     except Exception as e:
         return Response({"error": str(e)}, status=500)
+    
+
+from rest_framework import status
+@api_view(['POST'])
+def create_payslip(request, id):
+    """
+    Create a payslip for a specific employee (employee ID passed in URL).
+    """
+    try:
+        # Get the employee
+        employee = Employee_Registration.objects.get(id=id)
+    except Employee_Registration.DoesNotExist:
+        return Response({"error": "Employee not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    data = request.data
+    try:
+        payslip = Payslip.objects.create(
+            name=employee,
+            month=data.get("month"),
+            basic_salary=float(data.get("basic_salary", 0)),
+            lop_days=int(data.get("lop_days", 0)),
+            lop_amount=float(data.get("lop_amount", 0)),
+            pf_amount=float(data.get("pf_amount", 0)),
+            professional_tax=float(data.get("professional_tax", 0)),
+            gross_salary=float(data.get("gross_salary", 0)),
+            net_salary=float(data.get("net_salary", 0))
+        )
+
+        return Response({
+            "message": "Payslip created successfully",
+            "payslip": {
+                "id": payslip.id,
+                "employee": employee.name,  # assuming Employee_Registration has ⁠ name ⁠ field
+                "month": payslip.month,
+                "gross_salary": payslip.gross_salary,
+                "net_salary": payslip.net_salary
+            }
+        }, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST) 

@@ -165,6 +165,11 @@ class EmployeeCheckInSerializer(serializers.ModelSerializer):
         # Ensure checkout is not saved yet
         validated_data['checkout'] = None
         return super().create(validated_data)
+    
+class Employee_payslip(serializers.ModelSerializer):
+    class Meta:
+        model = Payslip
+        fields = '_all_'
 
 
 
