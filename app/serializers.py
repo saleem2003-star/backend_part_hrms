@@ -81,13 +81,27 @@ class Employee_attendence_serializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class Admin_Employee_dashboard(serializers.ModelSerializer):
-    other_details = Employee_other_details_serializer(source='employee_other_details_set', many=True)
-    bank_details = Employee_bank_details_serializer(source='employee_bank_details_set', many=True)
-    statutory_details = Employee_statuory_details_serializer(source='employee_statuory_information_set', many=True)
-    attendence_details = Employee_attendence_serializer(source = 'employee_attendence_details_set',many =True)
+    # Remove the `source` and `many=True`, we will use Method fields instead
+    other_details = serializers.SerializerMethodField()
+    bank_details = serializers.SerializerMethodField()
+    statutory_details = serializers.SerializerMethodField()
+    attendence_details = Employee_attendence_serializer(source='employee_attendence_details_set', many=True)
+
     class Meta:
         model = Employee_Registration
         fields = '__all__'   
+    
+    def get_other_details(self, obj):
+        detail = obj.employee_other_details_set.first()
+        return Employee_other_details_serializer(detail).data if detail else {}
+
+    def get_bank_details(self, obj):
+        detail = obj.employee_bank_details_set.first()
+        return Employee_bank_details_serializer(detail).data if detail else {}
+
+    def get_statutory_details(self, obj):
+        detail = obj.employee_statuory_information_set.first()
+        return Employee_statuory_details_serializer(detail).data if detail else {}  
     
     
 

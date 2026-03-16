@@ -180,11 +180,21 @@ def employee_dashboard(request,id):
 
 
 @csrf_exempt
-@api_view(['GET','POST'])
-def admin_employee(request,id):
-     employee = Employee_Registration.objects.get(id=id)
-     serializer = Admin_Employee_dashboard(employee)
-     return Response(serializer.data)
+@api_view(['GET', 'POST', 'DELETE']) # ADDED 'DELETE' HERE
+def admin_employee(request, id):
+    try:
+        employee = Employee_Registration.objects.get(id=id)
+    except Employee_Registration.DoesNotExist:
+        return Response({"error": "Employee not found"}, status=404)
+
+    # NEW: Handle Delete Request
+    if request.method == 'DELETE':
+        employee.delete() # This deletes the employee and all related records (cascade)
+        return Response({"message": "Employee deleted permanently"}, status=200)
+        
+    # Existing: Handle Get/Post Requests
+    serializer = Admin_Employee_dashboard(employee)
+    return Response(serializer.data)
 
 
 # @csrf_exempt
@@ -312,24 +322,53 @@ def leave_details(request,id):
 
 @api_view(['PATCH'])
 def update_employee_details(request, id):
+    try:
+        # 1. Fetch the main employee record
+        employee = Employee_Registration.objects.get(id=id)
+    except Employee_Registration.DoesNotExist:
+        return Response({"error": "Employee not found"}, status=404)
 
-    other_details, created = Employee_other_details.objects.get_or_create(name_id=id)
+    data = request.data
 
-    serializer = Employee_other_details_serializer(
-        other_details,
-      
-        data=request.data,
-        partial=True
-    )
+    try:
+        # 2. Update Main Employee Table
+        if 'name' in data and data['name']: employee.name = data['name']
+        if 'email' in data and data['email']: employee.email = data['email']
+        if 'role' in data and data['role']: employee.role = data['role']
+        if 'department' in data and data['department']: employee.department = data['department']
+        if 'salary' in data and data['salary']: employee.salary = data['salary']
+        if 'joining' in data and data['joining']: employee.joining = data['joining']
+        employee.save()
 
-    if serializer.is_valid():
-        serializer.save()
-        return Response({
-            "message": "Profile updated successfully",
-            "data": serializer.data
-        })
+        # 3. Update Other Details (Phone, Address, Marital Status)
+        other_details, _ = Employee_other_details.objects.get_or_create(name=employee)
+        if 'mobile' in data and data['mobile']: other_details.mobile = data['mobile']
+        if 'address' in data and data['address']: other_details.address = data['address']
+        if 'marital_status' in data and data['marital_status']: other_details.marital_status = data['marital_status']
+        other_details.save()
 
-    return Response(serializer.errors, status=400)
+        # 4. Update Statutory Information
+        stat_details, _ = Employee_statuory_information.objects.get_or_create(name=employee)
+        if 'pan' in data and data['pan']: stat_details.pan = data['pan']
+        if 'pf_uan' in data and data['pf_uan']: stat_details.pf_uan = data['pf_uan']
+        if 'profesional_tax' in data and data['profesional_tax']: stat_details.profesional_tax = data['profesional_tax']
+        if 'lwf_status' in data and data['lwf_status']: stat_details.lwf_status = data['lwf_status']
+        if 'esic_status' in data and data['esic_status']: stat_details.esic_status = data['esic_status']
+        if 'esic_ip_number' in data and data['esic_ip_number']: stat_details.esic_ip_number = data['esic_ip_number']
+        stat_details.save()
+
+        # 5. Update Bank Details
+        bank_details, _ = Employee_Bank_details.objects.get_or_create(name=employee)
+        if 'bank_name' in data and data['bank_name']: bank_details.bank_name = data['bank_name']
+        if 'acc_no' in data and data['acc_no']: bank_details.acc_no = data['acc_no']
+        if 'ifsc_code' in data and data['ifsc_code']: bank_details.ifsc_code = data['ifsc_code']
+        bank_details.save()
+
+        return Response({"message": "Profile updated successfully!"}, status=200)
+
+    except Exception as e:
+        print("Error updating profile:", str(e))
+        return Response({"error": str(e)}, status=400)
 
 
 @api_view(['POST'])
@@ -782,8 +821,8 @@ def todays_attendance(request):
             "name": a.name.name,
             "role": a.name.role,
             "date": a.date,
-            "checkin": a.checkin.strftime("%I:%M %p") if a.checkin else None,
-            "checkout": a.checkout.strftime("%I:%M %p") if a.checkout else None,
+            "checkin": timezone.localtime(a.checkin).strftime("%I:%M %p") if a.checkin else None,
+            "checkout": timezone.localtime(a.checkout).strftime("%I:%M %p") if a.checkout else None,
             "duration": duration
         })
 
