@@ -756,3 +756,120 @@ def end_break(request):
     
     serializer = EmployeeBreakSerializer(active_break)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def todays_attendance(request):
+
+    today = timezone.localdate()
+
+    attendances = Employee_attendence_details.objects.filter(
+        date=today
+    ).select_related('name')
+
+    data = []
+
+    for a in attendances:
+
+        duration = None
+        if a.duration:
+            total_seconds = int(a.duration.total_seconds())
+            hours = total_seconds // 3600
+            minutes = (total_seconds % 3600) // 60
+            duration = f"{hours}h {minutes}m"
+
+        data.append({
+            "id": a.name.employee_id,
+            "name": a.name.name,
+            "role": a.name.role,
+            "date": a.date,
+            "checkin": a.checkin.strftime("%I:%M %p") if a.checkin else None,
+            "checkout": a.checkout.strftime("%I:%M %p") if a.checkout else None,
+            "duration": duration
+        })
+
+    return Response(data)
+
+@api_view(['GET'])
+def attendance_graph(request):
+
+    today = timezone.localdate()
+
+    total = Employee_Registration.objects.count()
+
+    present = Employee_attendence_details.objects.filter(date=today).count()
+
+    late = Employee_attendence_details.objects.filter(
+        date=today,
+        checkin__time__gt="10:10:00"
+    ).count()
+
+    absent = total - present
+
+    return Response({
+        "total": total,
+        "present": present,
+        "late": late,
+        "absent": absent
+    })
+
+# Add these imports at the top of your views.py
+import calendar
+from datetime import date
+
+# ... (keep all your other views)
+
+# ADD THIS NEW VIEW at the end of the file
+@api_view(['GET'])
+def monthly_attendance_summary(request):
+    """
+    Provides a daily summary of attendance for a given month and year.
+    Accepts 'year' and 'month' as query parameters.
+    """
+    try:
+        # Get year and month from query params, default to current
+        today = timezone.localdate()
+        year = int(request.GET.get('year', today.year))
+        month = int(request.GET.get('month', today.month))
+
+        # Get total number of active employees
+        total_employees = Employee_Registration.objects.count()
+
+        # Get the number of days in the specified month
+        _, num_days = calendar.monthrange(year, month)
+
+        daily_data = []
+
+        for day in range(1, num_days + 1):
+            
+            # --- THIS IS THE FIX ---
+            # Instead of creating a naive date object, we query by date parts.
+            # This is more robust and avoids timezone comparison issues.
+            attendances_for_day = Employee_attendence_details.objects.filter(
+                date__year=year,
+                date__month=month,
+                date__day=day
+            )
+            
+            present_count = attendances_for_day.count()
+            
+            late_count = attendances_for_day.filter(
+                checkin__time__gt="10:10:00" # Your business logic for "late"
+            ).count()
+
+            ontime_count = present_count - late_count
+            absent_count = total_employees - present_count
+
+            daily_data.append({
+                "day": day,
+                "ontime": ontime_count,
+                "late": late_count,
+                "absent": absent_count
+            })
+
+        return Response({
+            "total_employees": total_employees,
+            "daily_data": daily_data
+        })
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)

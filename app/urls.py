@@ -39,6 +39,10 @@ urlpatterns = [
 
     path('employee-break/start/', start_break),
     path('employee-break/end/', end_break),
+    
+    path('today-attendance/', todays_attendance),
+    path('attendance-graph/', attendance_graph),
+    path('attendance/monthly-summary/', monthly_attendance_summary),
 ]
 
 
