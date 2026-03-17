@@ -88,7 +88,7 @@ DATABASES = {
  "NAME": "u783983833_oppty_hrms",
  "USER": "u783983833_oppty_hrms",
  "PASSWORD": "Oppty@123",
- "HOST": "DB_HOST_FROM_HPANEL",
+ "HOST": "srv1826.hstgr.io",
  "PORT": "3306",
  "OPTIONS": {"charset": "utf8mb4"},
  }
