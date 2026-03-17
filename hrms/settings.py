@@ -81,18 +81,19 @@ WSGI_APPLICATION = 'hrms.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
 DATABASES = {
- "default": {
- "ENGINE": "django.db.backends.mysql",
- "NAME": "u783983833_oppty_hrms",
- "USER": "u783983833_oppty_hrms",
- "PASSWORD": "Oppty@123",
- "HOST": "srv1826.hstgr.io",
- "PORT": "3306",
- 'CONN_MAX_AGE': 60,
- "OPTIONS": {"charset": "utf8mb4"},
- }
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'u783983833_oppty_hrms',
+        'USER': 'u783983833_oppty_hrms',
+        'PASSWORD': 'Oppty@123',
+        'HOST': 'srv1826.hstgr.io',
+        'PORT': '3306',
+        'CONN_MAX_AGE': 300,  # 🔥 VERY IMPORTANT
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+        }
+    }
 }
 
 
