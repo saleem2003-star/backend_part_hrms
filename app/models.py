@@ -13,6 +13,7 @@ class Employee_Registration(models.Model):
     manager_employee = models.CharField(max_length = 200)
     password = models.CharField(max_length=40)
     employee_id = models.IntegerField()
+    profile_pic = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
     
     def __str__(self):
         return self.name
@@ -209,3 +210,12 @@ class Employee_Break_details(models.Model):
 
     def __str__(self):
         return f"{self.employee.name} - {self.break_type} on {self.date}"
+    
+class Employee_notifications(models.Model):
+    name=models.ForeignKey(Employee_Registration,on_delete=models.CASCADE)
+    notification = models.CharField(max_length=1000)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+    
+    def _str_(self):
+        return f"{self.name}-{self.notification}"

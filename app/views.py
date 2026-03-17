@@ -144,6 +144,18 @@ def employee_attendence_create(request):
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
+
+
+def create_notification(employee, message):
+    try:
+        Employee_notifications.objects.create(
+            name=employee,
+            notification=message
+        )
+        print(f"Notification created for {employee.name}: {message}")
+    except Exception as e:
+        print(f"Error creating notification: {e}")
+
 @csrf_exempt
 @api_view(['PUT'])
 def attendence_logout(request):
@@ -263,6 +275,9 @@ def update_leave_status(request, id):
 
     leave.status = status_value
     leave.save()
+
+    employee_obj = leave.name  # correct way
+    create_notification(employee_obj,f"your leave has been {status_value}")
 
     return Response({
         "message": f"Leave {status_value} successfully",
@@ -437,33 +452,12 @@ def get_employee_documents(request,id):
     serializer = Employee_main_files_Serializer(documents,many=True)
     return Response(serializer.data)
 
-@api_view(['GET'])
-def attendance_status(request, id):
 
-    today = timezone.localdate()
-
-    attendance = Employee_attendence_details.objects.filter(
-        name_id=id,
-        date=today
-    ).first()
-
-    if not attendance:
-        return Response({"status": "not_punched"})
-
-    if attendance.checkin and not attendance.checkout:
-        return Response({
-            "status": "punched_in",
-            "checkin": attendance.checkin
-        })
-
-    if attendance.checkout:
-        return Response({
-            "status": "punched_out"
-        })
-        
 
 
 from datetime import date
+from django.http import JsonResponse
+
 def birthdays(request):
     today = date.today()
     employees = Employee_Registration.objects.all()
@@ -472,31 +466,38 @@ def birthdays(request):
     upcoming_birthdays = []
 
     for emp in employees:
-        try:
-            details = Employee_other_details.objects.get(name=emp)
-            emp_dob = details.dob
-        except Employee_other_details.DoesNotExist:
+        details = Employee_other_details.objects.filter(name=emp).first()
+        
+        if not details or not details.dob:
             continue 
 
-        if emp_dob.month == today.month and emp_dob.day == today.day:
-            today_birthdays.append({
-                "name": emp.name,
-                "dob": str(emp_dob),
-                
-            })
-        else:
-            upcoming_birthdays.append({
-                "name": emp.name,
-                "dob": str(emp_dob),
-               
-            })
-    upcoming_birthdays.sort(key=lambda x: x["dob"])
+        dob = details.dob
+        
+        emp_data = {
+            "id": emp.id,
+            "name": emp.name,
+            "role": emp.role,
+            "mobile": str(details.mobile) if details.mobile else "",
+            "dob": dob.strftime("%d %b"), 
+            "month": dob.month,
+            "day": dob.day
+        }
+
+        # 1. Check if it is TODAY
+        if dob.month == today.month and dob.day == today.day:
+            today_birthdays.append(emp_data)
+        
+        # 2. Check if it is UPCOMING (Only months/days after today)
+        elif (dob.month > today.month) or (dob.month == today.month and dob.day > today.day):
+            upcoming_birthdays.append(emp_data)
+
+    # Sort the upcoming list so the very next birthday is at the top
+    upcoming_birthdays.sort(key=lambda x: (x["month"], x["day"]))
 
     return JsonResponse({
         "today": today_birthdays,
         "upcoming": upcoming_birthdays
-    })
-    
+    }, safe=False)
 
 
 def leave_approvals(request):
@@ -702,6 +703,8 @@ def update_attendance_request_status(request, pk):
         new_status = request.data.get('status')
         req.status = new_status
         req.save()
+        employee = req.employee  # correct way
+        create_notification(employee,f"your attendance has been {req.status}")
 
         # --- THE MAGIC LOGIC: UPDATE MAIN TABLE IF APPROVED ---
         if new_status == 'Approved':
@@ -731,11 +734,50 @@ def update_attendance_request_status(request, pk):
         print(e)
         return Response({"error": str(e)}, status=500)
 
+@api_view(['GET'])
+def attendance_status(request, id):
+    try:
+        employee = Employee_Registration.objects.get(id=id)
+    except Employee_Registration.DoesNotExist:
+        return Response({"status": "not_punched", "break_info": None})
+
+    today = timezone.localdate()
+    attendance = Employee_attendence_details.objects.filter(name=employee, date=today).first()
+
+    # Safely check for an active break using the employee object
+    active_break = Employee_Break_details.objects.filter(
+        employee=employee, 
+        end_time__isnull=True
+    ).order_by('-start_time').first()
+
+    break_info = None
+    if active_break and active_break.start_time:
+        break_info = {
+            "is_on_break": True,
+            "break_type": active_break.break_type,
+            "start_time": active_break.start_time.isoformat() # Ensures the exact time is sent to the frontend
+        }
+
+    if not attendance:
+        return Response({"status": "not_punched", "break_info": break_info})
+
+    if attendance.checkin and not attendance.checkout:
+        return Response({
+            "status": "punched_in",
+            "checkin": attendance.checkin,
+            "break_info": break_info
+        })
+
+    if attendance.checkout:
+        return Response({
+            "status": "punched_out",
+            "break_info": break_info
+        })
 @csrf_exempt
 @api_view(['POST'])
 def start_break(request):
     employee_id = request.data.get('id')
-    break_type = request.data.get('break_type') # 'lunch' or 'normal'
+    break_type = request.data.get('break_type')
 
     if not employee_id or not break_type:
         return Response({"error": "Employee ID and break type are required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -745,16 +787,15 @@ def start_break(request):
     except Employee_Registration.DoesNotExist:
         return Response({"error": "Employee not found"}, status=status.HTTP_404_NOT_FOUND)
 
-    # Check if the user is already on a break that hasn't ended yet
+    # Check for active break
     active_break = Employee_Break_details.objects.filter(
-    employee=employee,
-    end_time__isnull=True
-).first()
+        employee=employee,
+        end_time__isnull=True
+    ).first()
 
     if active_break:
         return Response({"error": "Already on an active break"}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Create the new break session
     break_record = Employee_Break_details.objects.create(
         employee=employee,
         date=timezone.localdate(),
@@ -764,7 +805,6 @@ def start_break(request):
     
     serializer = EmployeeBreakSerializer(break_record)
     return Response(serializer.data, status=status.HTTP_201_CREATED)
-
 
 @csrf_exempt
 @api_view(['PUT'])
@@ -779,23 +819,21 @@ def end_break(request):
     except Employee_Registration.DoesNotExist:
         return Response({"error": "Employee not found"}, status=status.HTTP_404_NOT_FOUND)
 
-    # Find the active break for today that hasn't been closed yet
-    active_break = Employee_Break_details.objects.filter(
+    # NUCLEAR OPTION: Find EVERY open break (even from past days) and close them all!
+    open_breaks = Employee_Break_details.objects.filter(
         employee=employee, 
-        date=timezone.localdate(), 
         end_time__isnull=True
-    ).order_by('-start_time').first()
+    )
 
-    if not active_break:
+    if not open_breaks.exists():
         return Response({"error": "No active break found to end"}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Update the end time and save (which triggers the duration calculation in the model)
-    active_break.end_time = timezone.now()
-    active_break.save()
+    # Loop through and close every single stuck break
+    for b in open_breaks:
+        b.end_time = timezone.now()
+        b.save()
     
-    serializer = EmployeeBreakSerializer(active_break)
-    return Response(serializer.data, status=status.HTTP_200_OK)
-
+    return Response({"message": "All ghost breaks successfully closed!"}, status=status.HTTP_200_OK)
 @api_view(['GET'])
 def todays_attendance(request):
 
@@ -953,3 +991,40 @@ def create_payslip(request, id):
 
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST) 
+    
+@api_view(['PATCH'])
+@parser_classes([MultiPartParser, FormParser])
+def upload_profile_picture(request, id):
+    try:
+        employee = Employee_Registration.objects.get(id=id)
+    except Employee_Registration.DoesNotExist:
+        return Response({"error": "Employee not found"}, status=404)
+
+    if 'profile_pic' in request.FILES:
+        employee.profile_pic = request.FILES['profile_pic']
+        employee.save()
+        # Return the new URL so the frontend can display it immediately
+        return Response({
+            "message": "Profile picture updated",
+            "profile_pic_url": employee.profile_pic.url
+        })
+    
+    return Response({"error": "No image provided"}, status=400)
+
+
+
+@api_view(['GET'])
+def get_notifications(request,id):
+    
+    employee = Employee_Registration.objects.get(id=id)
+    notifications = Employee_notifications.objects.filter(name=employee).order_by('-created_at')
+    data = [
+        {
+            "message": n.notification,
+            "is_read": n.is_read,
+            "created_at": n.created_at
+        }
+        for n in notifications
+    ]
+
+    return Response(data)

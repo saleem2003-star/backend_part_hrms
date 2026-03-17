@@ -44,6 +44,10 @@ urlpatterns = [
     path('attendance-graph/', attendance_graph),
     path('attendance/monthly-summary/', monthly_attendance_summary),
     path('create-payslip/<int:id>/',create_payslip),
+
+    path('upload-profile-pic/<int:id>/', upload_profile_picture),
+    path('notofications/<int:id>/',get_notifications)
+
 ]
 
 

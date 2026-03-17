@@ -10,6 +10,7 @@ admin.site.register(Employee_statuory_information)
 admin.site.register(Leave)
 admin.site.register(Payslip)
 admin.site.register(Employee_main_files)
+admin.site.register(Employee_notifications)
 
 admin.site.register(AssetRequest)
 
@@ -24,6 +25,7 @@ class AttendanceRequestAdmin(admin.ModelAdmin):
     search_fields = ('employee__name',)
 
 admin.site.register(AttendanceRequest, AttendanceRequestAdmin)
+
 
 
 @admin.register(Employee_Break_details)
