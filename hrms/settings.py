@@ -152,7 +152,8 @@ CORS_ALLOW_METHODS = [
     "OPTIONS"
 ]
 
-
+DATABASES["default"]["CONN_MAX_AGE"] = 120
+DATABASES["default"]["OPTIONS"] = {"connect_timeout": 10}
 import os
 
 MEDIA_URL = '/media/'
