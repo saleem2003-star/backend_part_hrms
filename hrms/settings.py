@@ -83,10 +83,15 @@ WSGI_APPLICATION = 'hrms.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+ "default": {
+ "ENGINE": "django.db.backends.mysql",
+ "NAME": "u783983833_oppty_hrms",
+ "USER": "u783983833_oppty_hrms",
+ "PASSWORD": "Oppty@123",
+ "HOST": "DB_HOST_FROM_HPANEL",
+ "PORT": "3306",
+ "OPTIONS": {"charset": "utf8mb4"},
+ }
 }
 
 
