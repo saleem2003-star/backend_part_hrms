@@ -739,12 +739,28 @@ def attendance_status(request, id):
     try:
         employee = Employee_Registration.objects.get(id=id)
     except Employee_Registration.DoesNotExist:
-        return Response({"status": "not_punched", "break_info": None})
+        return Response({"status": "not_punched", "break_info": None, "today_breaks": []})
 
     today = timezone.localdate()
     attendance = Employee_attendence_details.objects.filter(name=employee, date=today).first()
 
-    # Safely check for an active break using the employee object
+    # --- NEW CODE START: Fetch all breaks for today ---
+    # We need to send the history so the frontend knows what is already used
+    today_breaks_qs = Employee_Break_details.objects.filter(employee=employee, date=today)
+    
+    # Manually serialize to ensure correct format without importing serializers
+    today_breaks_data = []
+    for b in today_breaks_qs:
+        today_breaks_data.append({
+            "break_type": b.break_type,
+            "start_time": b.start_time,
+            "end_time": b.end_time,
+            # Calculate duration in seconds if end_time exists
+            "duration": int(b.duration.total_seconds()) if b.duration else 0
+        })
+    # --- NEW CODE END ---
+
+    # Active break logic (Keep existing)
     active_break = Employee_Break_details.objects.filter(
         employee=employee, 
         end_time__isnull=True
@@ -755,24 +771,28 @@ def attendance_status(request, id):
         break_info = {
             "is_on_break": True,
             "break_type": active_break.break_type,
-            "start_time": active_break.start_time.isoformat() # Ensures the exact time is sent to the frontend
+            "start_time": active_break.start_time.isoformat()
         }
 
+    response_data = {
+        "break_info": break_info,
+        "today_breaks": today_breaks_data # <--- SEND THIS TO FRONTEND
+    }
+
     if not attendance:
-        return Response({"status": "not_punched", "break_info": break_info})
+        response_data["status"] = "not_punched"
+        return Response(response_data)
 
     if attendance.checkin and not attendance.checkout:
-        return Response({
-            "status": "punched_in",
-            "checkin": attendance.checkin,
-            "break_info": break_info
-        })
+        response_data["status"] = "punched_in"
+        response_data["checkin"] = attendance.checkin
+        return Response(response_data)
 
     if attendance.checkout:
-        return Response({
-            "status": "punched_out",
-            "break_info": break_info
-        })
+        response_data["status"] = "punched_out"
+        return Response(response_data)
+        
+    return Response(response_data)
 @csrf_exempt
 @api_view(['POST'])
 def start_break(request):
@@ -1014,17 +1034,29 @@ def upload_profile_picture(request, id):
 
 
 @api_view(['GET'])
-def get_notifications(request,id):
-    
-    employee = Employee_Registration.objects.get(id=id)
-    notifications = Employee_notifications.objects.filter(name=employee).order_by('-created_at')
-    data = [
-        {
-            "message": n.notification,
-            "is_read": n.is_read,
-            "created_at": n.created_at
-        }
-        for n in notifications
-    ]
+def get_notifications(request, id):
+    try:
+        employee = Employee_Registration.objects.get(id=id)
+        
+        # Check if frontend says "mark_read=true"
+        should_mark_read = request.query_params.get('mark_read', 'false') == 'true'
 
-    return Response(data)
+        if should_mark_read:
+            # Update DB first
+            Employee_notifications.objects.filter(name=employee, is_read=False).update(is_read=True)
+
+        # Then fetch fresh data
+        notifications = Employee_notifications.objects.filter(name=employee).order_by('-created_at')
+        
+        data = [
+            {
+                "message": n.notification,
+                "is_read": n.is_read,
+                "created_at": n.created_at
+            }
+            for n in notifications
+        ]
+
+        return Response(data)
+    except Employee_Registration.DoesNotExist:
+        return Response({"error": "Employee not found"}, status=404)
