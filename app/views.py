@@ -295,10 +295,11 @@ def leave_details(request,id):
         return Response({"error": "Employee not found"}, status=404)
     # if request.method == 'GET':
     casual_taken = Leave.objects.filter(
-    name=employee,
+    name=employee,status="Approved",
     leave_type="casual").count()
     sick_taken = Leave.objects.filter(
     name=employee,
+    status="Approved",
     leave_type="medical").count()
     lop_taken = Leave.objects.filter(name=employee,leave_type = 'nopay').count()
     taken = casual_taken + sick_taken + lop_taken
