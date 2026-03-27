@@ -28,7 +28,15 @@ SECRET_KEY = 'django-insecure-+)c$z_88_pypl(k91mcr5i%dan$^2g1w-8k9&lx46qfln17197
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['13.51.167.95','*']
+ALLOWED_HOSTS = ['api.theoppty.com', '187.127.135.153', '127.0.0.1', 'localhost']
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'mail.theoppty.in'
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
+EMAIL_USE_TLS = False
+EMAIL_HOST_USER = 'admin@theoppty.in'
+EMAIL_HOST_PASSWORD='143@PrinceSp'
 
 
 # Application definition
@@ -83,20 +91,10 @@ WSGI_APPLICATION = 'hrms.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'u783983833_oppty_hrms',
-        'USER': 'u783983833_oppty_hrms',
-        'PASSWORD': 'Oppty@123',
-        'HOST': 'srv1826.hstgr.io',
-        'PORT': '3306',
-        'CONN_MAX_AGE': 300,  # 🔥 VERY IMPORTANT
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            'charset': 'utf8mb4',
-        }
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -139,12 +137,31 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+# settings.py
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ALL_ORIGINS = False
 
-CORS_ALLOW_HEADERS = [
-    "*",
+CORS_ALLOWED_ORIGINS = [
+    "https://theoppty.com",  # Changed https to http
+    "http://www.theoppty.com",  # Good practice to include both
 ]
+
+
+# 3. Allow Credentials
+CORS_ALLOW_CREDENTIALS = True
+
+# 4. Allowed Headers (Fixes "Ensure CORS request includes only allowed headers")
+from corsheaders.defaults import default_headers
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'content-type',
+    'x-csrftoken',
+]
+
+# 5. SameSite Cookie settings for Cross-Domain
+SESSION_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SECURE = True  # Required since your API is https://
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SECURE = True
 
 CORS_ALLOW_METHODS = [
     "GET",

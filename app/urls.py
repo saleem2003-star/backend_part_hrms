@@ -32,11 +32,11 @@ urlpatterns = [
     path('employee-assets/<str:emp_id>/', get_employee_assets),
     path('admin/asset-requests/', get_all_asset_requests),
     path('admin/asset-request-status/<int:pk>/', update_asset_request_status),
-    
+    path('document-delete/',delete_employee_document),    
     path('attendance-request/create/', create_attendance_request), # For Employee Page
     path('admin/attendance-requests/', get_attendance_requests),   # For Admin Table
     path('admin/attendance-status/<int:pk>/', update_attendance_request_status), # For Admin Action
-
+    path('verify-otp/',verify_otp),
     path('employee-break/start/', start_break),
     path('employee-break/end/', end_break),
 
@@ -46,9 +46,12 @@ urlpatterns = [
     path('create-payslip/<int:id>/',create_payslip),
 
     path('upload-profile-pic/<int:id>/', upload_profile_picture),
-    path('notofications/<int:id>/',get_notifications)
+    path('notofications/<int:id>/',get_notifications),
+path('employee/verify-email/', verify_email_exists),
+    path('employee/reset-password/', reset_password)
 
 ]
+
 
 
 

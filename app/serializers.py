@@ -198,4 +198,3 @@ class EmployeeBreakSerializer(serializers.ModelSerializer):
     class Meta:
         model = Employee_Break_details
         fields = '__all__'
-

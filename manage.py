@@ -3,7 +3,9 @@
 import os
 import sys
 
-
+import pymysql
+pymysql.version_info = (1, 4, 6, 'final', 0) # Fake the version for Django
+pymysql.install_as_MySQLdb()
 def main():
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'hrms.settings')

@@ -1,6 +1,3 @@
-from django.shortcuts import render
-from django.http import JsonResponse
-
 # Create your views here.
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -13,11 +10,53 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.decorators import parser_classes
 from django.views.decorators.csrf import csrf_exempt
 
+
+
+from rest_framework import status
+from .models import Employee_main_files
+
+@api_view(['DELETE'])
+def delete_employee_document(request):
+    doc_id = request.data.get('doc_id')
+    employee_id = request.data.get('employee_id')
+
+    if not doc_id or not employee_id:
+        return Response(
+            {"error": "doc_id and employee_id are required"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        # Check document belongs to that employee
+        document = Employee_main_files.objects.get(
+            id=doc_id,
+            employee_id=employee_id
+        )
+
+    except Employee_main_files.DoesNotExist:
+        return Response(
+            {"error": "Document not found or not authorized"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    # Delete file from storage
+    if document.file:
+        document.file.delete(save=False)
+
+    # Delete record
+    document.delete()
+
+    return Response(
+        {"message": "Document deleted successfully"},
+        status=status.HTTP_200_OK
+    )
+
+
 @csrf_exempt
 @api_view(['GET','POST'])
 def employee_data(request):
     if request.method == 'GET':
-        employees = Employee_Registration.objects.all()
+        employees = Employee_Registration.objects.all().order_by('employee_id')
         serializer = Employee_serializer(employees, many=True)
         return Response(serializer.data)
     print(employees)
@@ -361,6 +400,9 @@ def update_employee_details(request, id):
         if 'mobile' in data and data['mobile']: other_details.mobile = data['mobile']
         if 'address' in data and data['address']: other_details.address = data['address']
         if 'marital_status' in data and data['marital_status']: other_details.marital_status = data['marital_status']
+        if 'dob' in data and data['dob']:other_details.dob=data['dob']
+        if 'Gender' in data and data['Gender']:other_details.Gender=data['Gender']
+        if 'city' in data and data['city']:other_details.city=data['city']
         other_details.save()
 
         # 4. Update Statutory Information
@@ -455,6 +497,98 @@ def get_employee_documents(request,id):
 
 
 
+import random
+from django.core.mail import send_mail
+from django.conf import settings
+from django.utils import timezone
+from datetime import datetime, timedelta
+@api_view(["POST"])
+def verify_email_exists(request):
+    email=request.data.get("email")
+    if not email:
+        return Response({"error":"Email is required"}, status=400)
+    exists=Employee_Registration.objects.filter(email=email).exists()
+    if exists:
+	# 2. Generate OTP
+        otp = str(random.randint(100000, 999999))
+        
+        # 3. Store OTP and Expiration in Session
+        # We store the time as a timestamp string
+        expiration_time = (timezone.now() + timedelta(minutes=5)).timestamp()
+        
+        request.session['reset_otp'] = otp
+        request.session['reset_email'] = email
+        request.session['otp_expiry'] = expiration_time
+        
+        # Ensure session is saved
+        request.session.modified = True
+
+        # 4. Send the Mail
+        try:
+            send_mail(
+                subject="Your Password Reset OTP",
+                message=f"Your OTP is {otp}. It will expire in 5 minutes.",
+                from_email=settings.EMAIL_HOST_USER,
+                recipient_list=[email],
+            )
+            return Response({
+                "status": "success", 
+                "message": "Email exists and OTP has been sent."
+            })
+        except Exception as e:
+            return Response({"error": f"Failed to send email: {str(e)}"}, status=500)
+    else:
+        return Response({"error": "No account found with this email."}, status=404)
+    
+@api_view(["PATCH"])
+def reset_password(request):
+    email=request.data.get("email")
+    new_password=request.data.get("new_password")
+
+    if not email or not new_password:
+        return Response({"error": "Missing data"}, status=400)
+    
+    try:
+        employee=Employee_Registration.objects.get(email=email)
+        employee.password=new_password
+        employee.save(update_fields=['password'])
+
+        return Response({"status": "success", "message": "Password updated successfully."})
+    except Employee_Registration.DoesNotExist:
+        return Response({"error": "User no longer exists."}, status=404)
+
+@api_view(["POST"])
+def verify_otp(request):
+    email_provided = request.data.get("email", "").strip().lower()
+    otp_provided = request.data.get("otp", "").strip()
+
+    # Get data from session
+    session_otp = request.session.get('reset_otp')
+    session_email = request.session.get('reset_email')
+    session_expiry = request.session.get('otp_expiry')
+
+    # 1. Check if session data exists
+    if not session_otp or not session_email:
+        return Response({"error": "No OTP request found. Please resend OTP."}, status=400)
+
+    # 2. Check if Email matches
+    if email_provided != session_email:
+        return Response({"error": "Email mismatch."}, status=400)
+
+    # 3. Check Expiration
+    if timezone.now().timestamp() > session_expiry:
+        # Clean up session
+        del request.session['reset_otp']
+        return Response({"error": "OTP has expired."}, status=400)
+
+    # 4. Check if OTP is correct
+    if otp_provided == session_otp:
+        # Mark as verified in session so the password reset view knows it's safe
+        request.session['otp_verified'] = True
+        return Response({"status": "success", "message": "OTP verified successfully."})
+    else:
+        return Response({"error": "Invalid OTP."}, status=400)
+
 
 from datetime import date
 from django.http import JsonResponse
@@ -481,7 +615,8 @@ def birthdays(request):
             "mobile": str(details.mobile) if details.mobile else "",
             "dob": dob.strftime("%d %b"), 
             "month": dob.month,
-            "day": dob.day
+            "day": dob.day,
+	    "profile_pic": emp.profile_pic.url if emp.profile_pic else None
         }
 
         # 1. Check if it is TODAY
@@ -616,10 +751,23 @@ def save_asset(request):
         return Response(serializer.data)
 
     return Response(serializer.errors)
-
 @api_view(['GET'])
 def get_employee_assets(request, emp_id):
+    # 1. Try to find assets directly using the ID passed (works for 109)
     assets = Asset.objects.filter(emp_id=emp_id)
+
+    # 2. If nothing found, check if the ID passed is a Database PK (works for 11)
+    if not assets.exists():
+        try:
+            # Look up the employee to find their "real" employee number
+            employee = Employee_Registration.objects.get(id=emp_id)
+            
+            # Use the field name you use for '109' (e.g., employee_id)
+            # Change 'employee_id' below to match your exact model field name
+            assets = Asset.objects.filter(emp_id=employee.employee_id) 
+        except Exception:
+            pass
+
     serializer = AssetSerializer(assets, many=True)
     return Response(serializer.data)
 
@@ -887,61 +1035,73 @@ def todays_attendance(request):
 
     return Response(data)
 
+
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from django.utils import timezone
+from datetime import time
+from django.utils.timezone import localtime
+
 @api_view(['GET'])
 def attendance_graph(request):
+    try:
+        today = timezone.localdate()
+        total = Employee_Registration.objects.count()
 
-    today = timezone.localdate()
+        today_attendance = Employee_attendence_details.objects.filter(date=today)
 
-    total = Employee_Registration.objects.count()
+        present = today_attendance.count()
 
-    present = Employee_attendence_details.objects.filter(date=today).count()
+        # Safe late calculation
+        late_threshold = time(10, 0)
+        late_count = 0
 
-    late = Employee_attendence_details.objects.filter(
-        date=today,
-        checkin__time__gt="10:10:00"
-    ).count()
+        for record in today_attendance:
+            if record.checkin:
+                local_checkin = localtime(record.checkin).time()
+                if local_checkin > late_threshold:
+                    late_count += 1
 
-    absent = total - present
+        absent = max(total - present, 0)
 
-    return Response({
-        "total": total,
-        "present": present,
-        "late": late,
-        "absent": absent
-    })
+        return Response({
+            "total": total,
+            "present": present,
+            "late": late_count,
+            "absent": absent
+        })
+
+    except Exception as e:
+        print("ERROR:", str(e))  # logs in console
+        return Response({"error": str(e)}, status=500)
+
 
 # Add these imports at the top of your views.py
-import calendar
-from datetime import date
+
 
 # ... (keep all your other views)
 
 # ADD THIS NEW VIEW at the end of the file
+import calendar
+from datetime import time
+from django.utils.timezone import localtime
+
 @api_view(['GET'])
 def monthly_attendance_summary(request):
-    """
-    Provides a daily summary of attendance for a given month and year.
-    Accepts 'year' and 'month' as query parameters.
-    """
     try:
-        # Get year and month from query params, default to current
         today = timezone.localdate()
         year = int(request.GET.get('year', today.year))
         month = int(request.GET.get('month', today.month))
 
-        # Get total number of active employees
         total_employees = Employee_Registration.objects.count()
-
-        # Get the number of days in the specified month
         _, num_days = calendar.monthrange(year, month)
 
+        # Match the threshold used in your daily graph
+        late_threshold = time(10, 0) 
         daily_data = []
 
         for day in range(1, num_days + 1):
-            
-            # --- THIS IS THE FIX ---
-            # Instead of creating a naive date object, we query by date parts.
-            # This is more robust and avoids timezone comparison issues.
+            # Fetch all records for this specific day
             attendances_for_day = Employee_attendence_details.objects.filter(
                 date__year=year,
                 date__month=month,
@@ -949,13 +1109,18 @@ def monthly_attendance_summary(request):
             )
             
             present_count = attendances_for_day.count()
-            
-            late_count = attendances_for_day.filter(
-                checkin__time__gt="10:10:00" # Your business logic for "late"
-            ).count()
+            late_count = 0
+
+            # Loop through each record to handle timezone conversion correctly
+            for record in attendances_for_day:
+                if record.checkin:
+                    # Convert UTC from DB to your local time (IST) before comparing
+                    local_checkin = localtime(record.checkin).time()
+                    if local_checkin > late_threshold:
+                        late_count += 1
 
             ontime_count = present_count - late_count
-            absent_count = total_employees - present_count
+            absent_count = max(total_employees - present_count, 0)
 
             daily_data.append({
                 "day": day,
@@ -970,9 +1135,11 @@ def monthly_attendance_summary(request):
         })
 
     except Exception as e:
+        print("MONTHLY SUMMARY ERROR:", str(e))
         return Response({"error": str(e)}, status=500)
-    
-
+            
+            # --- THIS IS THE FIX ---
+            # Instead of creating a naive date object, we query by
 from rest_framework import status
 @api_view(['POST'])
 def create_payslip(request, id):
